@@ -1,0 +1,15 @@
+2D interactive plotting program
+
+does anyone out there know of any good plotting programs?
+all the ones i've ever tried are very slow or can't import data well or are not flexible enough.  
+everything seems to fall short in one way or another.
+i use gnuplot for most everything, except that even with that you don't get good interaction with your data.
+enter plot2d, the lua-driven 2D plotting environment.
+
+controls:
+	mouse click + drag to pan
+	mouse wheel to zoom
+	shift + mouse click to stretch individual axii
+
+for a test drive try luajit run.lua
+depends on Malkia's UFO as well as my lua GLApp, vector, and GUI projects
