@@ -215,8 +215,8 @@ local function plot2d(graphs, numRows, fontfile)
 			if ixmax - ixmin < 100 then
 				for ix=ixmin,ixmax do
 					local x = ix * gridScale
-					gl.glVertex2f(x, viewbbox.min[2])
-					gl.glVertex2f(x, viewbbox.max[2])
+					gl.glVertex2d(x, viewbbox.min[2])
+					gl.glVertex2d(x, viewbbox.max[2])
 				end
 			end
 			local gridScale = 5^(math.floor(math.log(viewsize[2]) / math.log(5))-1)
@@ -225,20 +225,20 @@ local function plot2d(graphs, numRows, fontfile)
 			if iymax - iymin < 100 then
 				for iy=iymin,iymax do
 					local y = iy * gridScale
-					gl.glVertex2f(viewbbox.min[1], y)
-					gl.glVertex2f(viewbbox.max[1], y)
+					gl.glVertex2d(viewbbox.min[1], y)
+					gl.glVertex2d(viewbbox.max[1], y)
 				end
 			end
 		end
 		do
 			gl.glColor3f(.5, .5, .5)
 			if viewbbox.min[1] < 0 and viewbbox.max[1] > 0 then
-				gl.glVertex2f(0, viewbbox.min[2])
-				gl.glVertex2f(0, viewbbox.max[2])
+				gl.glVertex2d(0, viewbbox.min[2])
+				gl.glVertex2d(0, viewbbox.max[2])
 			end
 			if viewbbox.min[2] < 0 and viewbbox.max[2] > 0 then
-				gl.glVertex2f(viewbbox.min[1], 0)
-				gl.glVertex2f(viewbbox.max[1], 0)
+				gl.glVertex2d(viewbbox.min[1], 0)
+				gl.glVertex2d(viewbbox.max[1], 0)
 			end
 		end
 		gl.glEnd()
@@ -248,9 +248,16 @@ local function plot2d(graphs, numRows, fontfile)
 				gl.glColor3f(graph.color[1], graph.color[2], graph.color[3])
 				gl.glBegin(gl.GL_LINE_STRIP)
 				for i=1,graph.length do
-					gl.glVertex2f(graph[1][i], graph[2][i])
+					gl.glVertex2d(graph[1][i], graph[2][i])
 				end
 				gl.glEnd()
+				gl.glPointSize(3)	-- TODO only show points when zoomed in such that the smallest distance ... mean distance between points is greater than 3 pixels on the screen
+				gl.glBegin(gl.GL_POINTS)
+				for i=1,graph.length do
+					gl.glVertex2d(graph[1][i], graph[2][i])
+				end
+				gl.glEnd()
+				gl.glPointSize(1)
 			end
 		end
 		
