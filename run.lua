@@ -4,15 +4,16 @@
 data will be in the form of "x y [z]"
 and plotted accordingly
 
+TODO - file vs equations? 
+
 --]]
-local args = {...}
 
 require 'ext'
 local graphs = table()
 
 local defaultValue = 0
 
-for _,fn in ipairs(args) do
+for _,fn in ipairs(arg) do
 	if not io.fileexists(fn) then
 		io.stderr:write('file '..tostring(fn)..' does not exist\n')
 		io.stderr:flush()
