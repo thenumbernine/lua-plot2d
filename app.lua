@@ -53,7 +53,7 @@ function Plot2DApp:resetView()
 	local min = {}
 	local max = {}
 	for name,graph in pairs(self.graphs) do
-		if graph.enabled then
+		if graph.enabled~=false then
 			for j,data in ipairs(graph) do
 				for _,v in ipairs(data) do
 					min[j] = min[j] and math.min(min[j], v) or v
@@ -72,7 +72,7 @@ function Plot2DApp:initGL()
 	self:setGraphInfo(table.unpack(self.initArgs))
 
 	if not self.fontfile or not io.fileexists(self.fontfile) then
-		self.fontfile = '/Users/christophermoore/Projects/lua/plot2d/font.png'
+		self.fontfile = os.getenv'HOME'..'/Projects/lua/plot2d/font.png'
 	end
 
 	self.gui = GUI{font=self.fontfile}
@@ -84,7 +84,7 @@ function Plot2DApp:initGL()
 	names:sort()
 	
 	local function colorForEnabled(graph)
-		if graph.enabled then
+		if graph.enabled~=false then
 			return graph.color[1], graph.color[2], graph.color[3], 1
 		else
 			return .4, .4, .4, 1
@@ -242,20 +242,24 @@ function Plot2DApp:update()
 	gl.glEnd()
 	
 	for _,graph in pairs(self.graphs) do
-		if graph.enabled then
+		if graph.enabled~=false then
 			gl.glColor3f(graph.color[1], graph.color[2], graph.color[3])
-			gl.glBegin(gl.GL_LINE_STRIP)
-			for i=1,graph.length do
-				gl.glVertex2d(graph[1][i], graph[2][i])
+			if graph.showLines~=false then
+				gl.glBegin(gl.GL_LINE_STRIP)
+				for i=1,graph.length do
+					gl.glVertex2d(graph[1][i], graph[2][i])
+				end
+				gl.glEnd()
 			end
-			gl.glEnd()
-			gl.glPointSize(3)	-- TODO only show points when zoomed in such that the smallest distance ... mean distance between points is greater than 3 pixels on the screen
-			gl.glBegin(gl.GL_POINTS)
-			for i=1,graph.length do
-				gl.glVertex2d(graph[1][i], graph[2][i])
+			if graph.showPoints then
+				gl.glPointSize(3)	-- TODO only show points when zoomed in such that the smallest distance ... mean distance between points is greater than 3 pixels on the screen
+				gl.glBegin(gl.GL_POINTS)
+				for i=1,graph.length do
+					gl.glVertex2d(graph[1][i], graph[2][i])
+				end
+				gl.glEnd()
+				gl.glPointSize(1)
 			end
-			gl.glEnd()
-			gl.glPointSize(1)
 		end
 	end
 	
@@ -263,4 +267,3 @@ function Plot2DApp:update()
 end
 
 return Plot2DApp
-
