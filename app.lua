@@ -68,6 +68,7 @@ function Plot2DApp:resetView()
 	end
 end
 
+Plot2DApp.guiScale = {12,12}
 function Plot2DApp:initGL()
 	self:setGraphInfo(table.unpack(self.initArgs))
 
@@ -75,7 +76,10 @@ function Plot2DApp:initGL()
 		self.fontfile = os.getenv'HOME'..'/Projects/lua/plot2d/font.png'
 	end
 
-	self.gui = GUI{font=self.fontfile}
+	self.gui = GUI{
+		font = self.fontfile,
+		scale = self.guiScale,
+	}
 	
 	local names = table()
 	for name,_ in pairs(self.graphs) do
