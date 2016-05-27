@@ -202,7 +202,7 @@ function Plot2DApp:update()
 	gl.glMatrixMode(gl.GL_MODELVIEW)
 	
 	local mx, my = self.gui:sysSize()
-	self.coordText:pos(self.mousepos[1] * mx, self.mousepos[2] * my)
+	self.coordText:pos(self.mousepos[1] * mx, self.mousepos[2] * my - 1)
 	self.coordText:setText(
 		('%.3e'):format(self.mousepos[1] * self.viewbbox.max[1] + (1-self.mousepos[1]) * self.viewbbox.min[1])..','..
 		('%.3e'):format((1-self.mousepos[2]) * self.viewbbox.max[2] + self.mousepos[2] * self.viewbbox.min[2])
