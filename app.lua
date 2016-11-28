@@ -73,7 +73,7 @@ function Plot2DApp:initGL()
 	self:setGraphInfo(table.unpack(self.initArgs))
 
 	if not self.fontfile or not io.fileexists(self.fontfile) then
-		self.fontfile = os.getenv'HOME'..'/Projects/lua/plot2d/font.png'
+		self.fontfile = (os.getenv'HOME' or os.getenv'USERPROFILE')..'/Projects/lua/plot2d/font.png'
 	end
 
 	self.gui = GUI{
