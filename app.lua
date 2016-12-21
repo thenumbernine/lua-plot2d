@@ -2,13 +2,13 @@ local ffi = require 'ffi'
 local gl = require 'ffi.OpenGL'
 local glu = require 'ffi.glu'
 local sdl = require 'ffi.sdl'
-local GLApp = require 'glapp'
+local ig = require 'ffi.imgui'
 local vec2 = require 'vec.vec2'
 local vec3 = require 'vec.vec3'
 local box2 = require 'vec.box2'
-local GUI = require 'gui'
+local ImGuiApp = require 'imguiapp'
 
-local Plot2DApp = class(GLApp)
+local Plot2DApp = class(ImGuiApp)
 
 function Plot2DApp:init(...)
 	self.initArgs = {...}
@@ -68,19 +68,14 @@ function Plot2DApp:resetView()
 	end
 end
 
-Plot2DApp.guiScale = {12,12}
-function Plot2DApp:initGL()
+function Plot2DApp:initGL(...)
+	Plot2DApp.super.initGL(self, ...)
 	self:setGraphInfo(table.unpack(self.initArgs))
 
 	if not self.fontfile or not io.fileexists(self.fontfile) then
 		self.fontfile = (os.getenv'HOME' or os.getenv'USERPROFILE')..'/Projects/lua/plot2d/font.png'
 	end
 
-	self.gui = GUI{
-		font = self.fontfile,
-		scale = self.guiScale,
-	}
-	
 	local names = table()
 	for name,_ in pairs(self.graphs) do
 		names:insert(name)
@@ -95,104 +90,77 @@ function Plot2DApp:initGL()
 		end
 	end
 	
-	local Text = require 'gui.widget.text'
-	
-	self.coordText = self.gui:widget{
-		class=Text,
-		text='',
-		parent={self.gui.root},
-		pos={0,0},
-		fontSize={2,2}
-	}
-	
-	local y = 1
-	local x = 1
-	for i,name in ipairs(names) do
-		local graph = self.graphs[name]
-		self.gui:widget{
-			class=Text,
-			text=name,
-			parent={self.gui.root},
-			pos={x,y},
-			fontSize={2,2},
-			graph=graph,
-			fontColor={colorForEnabled(graph)},
-			mouseEvent=function(menu,event,x,y)
-				if bit.band(event,1) ~= 0 then	-- left press
-					graph.enabled = not graph.enabled
-					menu:fontColor(colorForEnabled(graph))
-				end
-			end,
-		}
-		y=y+2
-		
-		if self.numRows and i % self.numRows == 0 then
-			y = 1
-			x = x + 10
-		end
-	end
-	
 	gl.glClearColor(0,0,0,0)
 end
 
-function Plot2DApp:event(event)
+function Plot2DApp:event(event, ...)
+	Plot2DApp.super.event(self, event, ...)
+	local canHandleMouse = not ig.igGetIO()[0].WantCaptureMouse
+	local canHandleKeyboard = not ig.igGetIO()[0].WantCaptureKeyboard
+	
 	local w, h = self:size()
-	if event.type == sdl.SDL_MOUSEMOTION then
-		self.mousepos[1], self.mousepos[2] = event.motion.x / w, event.motion.y / h
-		if self.leftButtonDown then
-			if self.leftShiftDown or self.rightShiftDown then
-				-- stretch individual axis
-				self.viewsize[1] = self.viewsize[1] * math.exp(-.01 * event.motion.xrel)
-				self.viewsize[2] = self.viewsize[2] * math.exp(.01 * event.motion.yrel)
-			else
-				-- pan
-				self.viewpos = self.viewpos + vec2(
-					-event.motion.xrel / w * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-					event.motion.yrel / h * (self.viewbbox.max[2] - self.viewbbox.min[2]))
+	if canHandleMouse then
+		if event.type == sdl.SDL_MOUSEMOTION then
+			self.mousepos[1], self.mousepos[2] = event.motion.x / w, event.motion.y / h
+			if self.leftButtonDown then
+				if self.leftShiftDown or self.rightShiftDown then
+					-- stretch individual axis
+					self.viewsize[1] = self.viewsize[1] * math.exp(-.01 * event.motion.xrel)
+					self.viewsize[2] = self.viewsize[2] * math.exp(.01 * event.motion.yrel)
+				else
+					-- pan
+					self.viewpos = self.viewpos + vec2(
+						-event.motion.xrel / w * (self.viewbbox.max[1] - self.viewbbox.min[1]),
+						event.motion.yrel / h * (self.viewbbox.max[2] - self.viewbbox.min[2]))
+				end
+			end
+		elseif event.type == sdl.SDL_MOUSEBUTTONDOWN then
+			if event.button.button == sdl.SDL_BUTTON_LEFT then
+				self.leftButtonDown = true
+			elseif event.button.button == sdl.SDL_BUTTON_WHEELUP then
+				local delta = vec2(
+					(event.button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
+					(.5 - event.button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
+				self.viewpos = self.viewpos + delta * (1 - .9)
+				self.viewsize = self.viewsize * .9
+			elseif event.button.button == sdl.SDL_BUTTON_WHEELDOWN then
+				local delta = vec2(
+					(event.button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
+					(.5 - event.button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
+				self.viewpos = self.viewpos + delta * (1 - 1 / .9)
+				self.viewsize = self.viewsize / .9
+			end
+		elseif event.type == sdl.SDL_MOUSEBUTTONUP then
+			if event.button.button == sdl.SDL_BUTTON_LEFT then
+				self.leftButtonDown = false
 			end
 		end
-	elseif event.type == sdl.SDL_MOUSEBUTTONDOWN then
-		if event.button.button == sdl.SDL_BUTTON_LEFT then
-			self.leftButtonDown = true
-		elseif event.button.button == sdl.SDL_BUTTON_WHEELUP then
-			local delta = vec2(
-				(event.button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-				(.5 - event.button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
-			self.viewpos = self.viewpos + delta * (1 - .9)
-			self.viewsize = self.viewsize * .9
-		elseif event.button.button == sdl.SDL_BUTTON_WHEELDOWN then
-			local delta = vec2(
-				(event.button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-				(.5 - event.button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
-			self.viewpos = self.viewpos + delta * (1 - 1 / .9)
-			self.viewsize = self.viewsize / .9
-		end
-	elseif event.type == sdl.SDL_MOUSEBUTTONUP then
-		if event.button.button == sdl.SDL_BUTTON_LEFT then
-			self.leftButtonDown = false
-		end
-	elseif event.type == sdl.SDL_KEYDOWN then
-		if event.key.keysym.sym == sdl.SDLK_r then
-			self:resetView()
-		elseif event.key.keysym.sym == sdl.SDLK_LSHIFT then
-			self.leftShiftDown = true
-		elseif event.key.keysym.sym == sdl.SDLK_RSHIFT then
-			self.rightShiftDown = true
-		end
-	elseif event.type == sdl.SDL_KEYUP then
-		if event.key.keysym.sym == sdl.SDLK_LSHIFT then
-			self.leftShiftDown = false 
-		elseif event.key.keysym.sym == sdl.SDLK_RSHIFT then
-			self.rightShiftDown = false 
+	end
+	if canHandleKeyboard then
+		if event.type == sdl.SDL_KEYDOWN then
+			if event.key.keysym.sym == sdl.SDLK_r then
+				self:resetView()
+			elseif event.key.keysym.sym == sdl.SDLK_LSHIFT then
+				self.leftShiftDown = true
+			elseif event.key.keysym.sym == sdl.SDLK_RSHIFT then
+				self.rightShiftDown = true
+			end
+		elseif event.type == sdl.SDL_KEYUP then
+			if event.key.keysym.sym == sdl.SDLK_LSHIFT then
+				self.leftShiftDown = false 
+			elseif event.key.keysym.sym == sdl.SDLK_RSHIFT then
+				self.rightShiftDown = false 
+			end
 		end
 	end
 end
+
+function Plot2DApp:update(...)
 	
-function Plot2DApp:update()
 	local w, h = self:size()
 	local ar = w / h
 	gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-	
+
 	self.viewbbox.min = self.viewpos - vec2(self.viewsize[1], self.viewsize[2])
 	self.viewbbox.max = self.viewpos + vec2(self.viewsize[1], self.viewsize[2])
 	
@@ -201,13 +169,6 @@ function Plot2DApp:update()
 	gl.glOrtho(self.viewbbox.min[1], self.viewbbox.max[1], self.viewbbox.min[2], self.viewbbox.max[2], -1, 1)
 	gl.glMatrixMode(gl.GL_MODELVIEW)
 	
-	local mx, my = self.gui:sysSize()
-	self.coordText:pos(self.mousepos[1] * mx, self.mousepos[2] * my - 1)
-	self.coordText:setText(
-		('%.3e'):format(self.mousepos[1] * self.viewbbox.max[1] + (1-self.mousepos[1]) * self.viewbbox.min[1])..','..
-		('%.3e'):format((1-self.mousepos[2]) * self.viewbbox.max[2] + self.mousepos[2] * self.viewbbox.min[2])
-	)
-
 	gl.glBegin(gl.GL_LINES)
 	do
 		local gridScale = 5^(math.floor(math.log(self.viewsize[1]) / math.log(5))-1)
@@ -267,7 +228,71 @@ function Plot2DApp:update()
 		end
 	end
 	
-	self.gui:update()
+	Plot2DApp.super.update(self, ...)
+end
+
+local bool = ffi.new('bool[1]', false)
+function Plot2DApp:updateGUI()
+	-- TODO store graphs as {name=name, ...} instead of name={...}
+	-- but that would break things that use plot2d
+	local graphNames = self.graphs:keys():sort()
+
+	local function checkbox(name, object, field) 
+		bool[0] = not not object[field]
+		if ig.igCheckbox(name, bool) then
+			object[field] = bool[0]
+			return true
+		end
+	end
+
+	checkbox('show coords', self, 'showMouseCoords')
+
+	ig.igText'Graphs:'
+	local function graphGUI(graph, name)
+		ig.igPushIdStr('graph '..name)
+		checkbox(name, graph, 'enabled')
+		ig.igSameLine()
+		if ig.igCollapsingHeader'' then
+			checkbox('show lines', graph, 'showLines')
+			checkbox('show points', graph, 'showPoints')
+		end
+		ig.igPopId()
+	end
+
+	local graphFields = table{'enabled', 'showLines', 'showPoints'}
+	local all = graphFields:map(function(field) return true, field end)
+	for _,name in ipairs(graphNames) do
+		local graph = self.graphs[name]
+		for _,field in ipairs(graphFields) do
+			all[field] = all[field] and graph[field]
+		end
+	end
+	local allWas = table(all)
+	graphGUI(all, 'all')
+	for _,field in ipairs(graphFields) do
+		if all[field] ~= allWas[field] then
+			for _,name in ipairs(graphNames) do
+				local graph = self.graphs[name]
+				graph[field] = all[field]
+			end
+		end
+	end
+
+	for _,name in ipairs(graphNames) do
+		local graph = self.graphs[name]
+		graphGUI(graph, name)
+	end
+
+	if self.showMouseCoords then
+		ig.igBeginTooltip()
+		ig.igText(
+			('%.3e, %.3e'):format(
+				self.mousepos[1] * self.viewbbox.max[1] + (1-self.mousepos[1]) * self.viewbbox.min[1],
+				(1-self.mousepos[2]) * self.viewbbox.max[2] + self.mousepos[2] * self.viewbbox.min[2]
+			)
+		)
+		ig.igEndTooltip()
+	end
 end
 
 return Plot2DApp
