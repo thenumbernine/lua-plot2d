@@ -99,22 +99,22 @@ function Plot2DApp:event(event, ...)
 	local canHandleKeyboard = not ig.igGetIO()[0].WantCaptureKeyboard
 	
 	local w, h = self:size()
-	if canHandleMouse then
-		if event.type == sdl.SDL_MOUSEMOTION then
-			self.mousepos[1], self.mousepos[2] = event.motion.x / w, event.motion.y / h
-			if self.leftButtonDown then
-				if self.leftShiftDown or self.rightShiftDown then
-					-- stretch individual axis
-					self.viewsize[1] = self.viewsize[1] * math.exp(-.01 * event.motion.xrel)
-					self.viewsize[2] = self.viewsize[2] * math.exp(.01 * event.motion.yrel)
-				else
-					-- pan
-					self.viewpos = self.viewpos + vec2(
-						-event.motion.xrel / w * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-						event.motion.yrel / h * (self.viewbbox.max[2] - self.viewbbox.min[2]))
-				end
+	if event.type == sdl.SDL_MOUSEMOTION then
+		self.mousepos[1], self.mousepos[2] = event.motion.x / w, event.motion.y / h
+		if self.leftButtonDown then
+			if self.leftShiftDown or self.rightShiftDown then
+				-- stretch individual axis
+				self.viewsize[1] = self.viewsize[1] * math.exp(-.01 * event.motion.xrel)
+				self.viewsize[2] = self.viewsize[2] * math.exp(.01 * event.motion.yrel)
+			else
+				-- pan
+				self.viewpos = self.viewpos + vec2(
+					-event.motion.xrel / w * (self.viewbbox.max[1] - self.viewbbox.min[1]),
+					event.motion.yrel / h * (self.viewbbox.max[2] - self.viewbbox.min[2]))
 			end
-		elseif event.type == sdl.SDL_MOUSEBUTTONDOWN then
+		end
+	elseif event.type == sdl.SDL_MOUSEBUTTONDOWN then
+		if canHandleMouse then
 			if event.button.button == sdl.SDL_BUTTON_LEFT then
 				self.leftButtonDown = true
 			elseif event.button.button == sdl.SDL_BUTTON_WHEELUP then
@@ -130,7 +130,9 @@ function Plot2DApp:event(event, ...)
 				self.viewpos = self.viewpos + delta * (1 - 1 / .9)
 				self.viewsize = self.viewsize / .9
 			end
-		elseif event.type == sdl.SDL_MOUSEBUTTONUP then
+		end
+	elseif event.type == sdl.SDL_MOUSEBUTTONUP then
+		if canHandleMouse then
 			if event.button.button == sdl.SDL_BUTTON_LEFT then
 				self.leftButtonDown = false
 			end
@@ -217,7 +219,7 @@ function Plot2DApp:update(...)
 				gl.glEnd()
 			end
 			if graph.showPoints then
-				gl.glPointSize(3)	-- TODO only show points when zoomed in such that the smallest distance ... mean distance between points is greater than 3 pixels on the screen
+				gl.glPointSize(graph.pointSize or 3)	-- TODO only show points when zoomed in such that the smallest distance ... mean distance between points is greater than 3 pixels on the screen
 				gl.glBegin(gl.GL_POINTS)
 				for i=1,graph.length do
 					gl.glVertex2d(graph[1][i], graph[2][i])
@@ -235,7 +237,7 @@ local bool = ffi.new('bool[1]', false)
 function Plot2DApp:updateGUI()
 	-- TODO store graphs as {name=name, ...} instead of name={...}
 	-- but that would break things that use plot2d
-	local graphNames = self.graphs:keys():sort()
+	local graphNames = table.keys(self.graphs):sort()
 
 	local function checkbox(name, object, field) 
 		bool[0] = not not object[field]
