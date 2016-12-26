@@ -7,6 +7,8 @@ local vec2 = require 'vec.vec2'
 local vec3 = require 'vec.vec3'
 local box2 = require 'vec.box2'
 local ImGuiApp = require 'imguiapp'
+local class = require 'ext.class'
+local table = require 'ext.table'
 
 local Plot2DApp = class(ImGuiApp)
 
@@ -32,7 +34,7 @@ function Plot2DApp:setGraphInfo(graphs, numRows, fontfile)
 	for name,graph in pairs(self.graphs) do
 		if not graph.color then
 			local c = vec3(math.random(),math.random(),math.random())
-			c = c / math.max(unpack(c))
+			c = c / math.max(table.unpack(c))
 			graph.color = c
 		end
 		local length
