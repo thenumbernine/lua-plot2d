@@ -260,13 +260,15 @@ function Plot2DApp:updateGUI()
 		if ig.igCollapsingHeader'' then
 			checkbox('show lines', graph, 'showLines')
 			checkbox('show points', graph, 'showPoints')
-			
-			for i=1,3 do
-				float3[i-1] = graph.color[i]
-			end
-			if ig.igColorEdit3('color', float3) then
+		
+			if graph.color then
 				for i=1,3 do
-					graph.color[i] = float3[i-1]
+					float3[i-1] = graph.color[i]
+				end
+				if ig.igColorEdit3('color', float3) then
+					for i=1,3 do
+						graph.color[i] = float3[i-1]
+					end
 				end
 			end
 		end
