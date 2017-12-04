@@ -236,6 +236,7 @@ function Plot2DApp:update(...)
 end
 
 local bool = ffi.new('bool[1]', false)
+local float3 = ffi.new('float[3]')
 function Plot2DApp:updateGUI()
 	-- TODO store graphs as {name=name, ...} instead of name={...}
 	-- but that would break things that use plot2d
@@ -259,6 +260,15 @@ function Plot2DApp:updateGUI()
 		if ig.igCollapsingHeader'' then
 			checkbox('show lines', graph, 'showLines')
 			checkbox('show points', graph, 'showPoints')
+			
+			for i=1,3 do
+				float3[i-1] = graph.color[i]
+			end
+			if ig.igColorEdit3('color', float3) then
+				for i=1,3 do
+					graph.color[i] = float3[i-1]
+				end
+			end
 		end
 		ig.igPopId()
 	end
