@@ -55,7 +55,7 @@ function Plot2DApp:resetView()
 	local min = {}
 	local max = {}
 	for name,graph in pairs(self.graphs) do
-		if graph.enabled~=false then
+		if graph.enabled ~= false then
 			for j,data in ipairs(graph) do
 				for _,v in ipairs(data) do
 					min[j] = min[j] and math.min(min[j], v) or v
@@ -265,7 +265,7 @@ function Plot2DApp:updateGUI()
 				for i=1,3 do
 					float3[i-1] = graph.color[i]
 				end
-				if ig.igColorEdit3('color', float3) then
+				if ig.igColorEdit3('color', float3, 0) then
 					for i=1,3 do
 						graph.color[i] = float3[i-1]
 					end
