@@ -254,7 +254,7 @@ function Plot2DApp:updateGUI()
 
 	ig.igText'Graphs:'
 	local function graphGUI(graph, name)
-		ig.igPushIdStr('graph '..name)
+		ig.igPushIDStr('graph '..name)
 		checkbox(name, graph, 'enabled')
 		ig.igSameLine()
 		if ig.igCollapsingHeader'' then
@@ -272,7 +272,7 @@ function Plot2DApp:updateGUI()
 				end
 			end
 		end
-		ig.igPopId()
+		ig.igPopID()
 	end
 
 	local graphFields = table{'enabled', 'showLines', 'showPoints'}
@@ -301,14 +301,16 @@ function Plot2DApp:updateGUI()
 
 	if self.showMouseCoords then
 		ig.igBeginTooltip()
-		ig.igText(
-			('%.3e, %.3e'):format(
-				self.mousepos[1] * self.viewbbox.max[1] + (1-self.mousepos[1]) * self.viewbbox.min[1],
-				(1-self.mousepos[2]) * self.viewbbox.max[2] + self.mousepos[2] * self.viewbbox.min[2]
-			)
-		)
+		ig.igText(self:getCoordText())
 		ig.igEndTooltip()
 	end
+end
+
+function Plot2DApp:getCoordText()
+	return ('%.3e, %.3e'):format(
+		self.mousepos[1] * self.viewbbox.max[1] + (1-self.mousepos[1]) * self.viewbbox.min[1],
+		(1-self.mousepos[2]) * self.viewbbox.max[2] + self.mousepos[2] * self.viewbbox.min[2]
+	)
 end
 
 return Plot2DApp
