@@ -14,13 +14,13 @@ local graphs = table()
 local defaultValue = 0
 
 for _,fn in ipairs(arg) do
-	if not io.fileexists(fn) then
+	if not os.fileexists(fn) then
 		io.stderr:write('file '..tostring(fn)..' does not exist\n')
 		io.stderr:flush()
 	else
 		local g = {enabled=true}
 	
-		--[[ splot-compat
+		-- [[ splot-compat
 		local j = 1
 		for l in io.lines(fn) do
 			local ws = l:trim():split('%s+')
@@ -45,7 +45,7 @@ for _,fn in ipairs(arg) do
 		end
 		--]]
 
-		-- [[ 1d-plot compat for graphing 0:1
+		--[[ 1d-plot compat for graphing 0:1
 
 		local gx = table()
 		local gy = table()
