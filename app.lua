@@ -9,6 +9,7 @@ local box2 = require 'vec.box2'
 local ImGuiApp = require 'imguiapp'
 local class = require 'ext.class'
 local table = require 'ext.table'
+local os = require 'ext.os'
 
 local Plot2DApp = class(ImGuiApp)
 
@@ -74,7 +75,7 @@ function Plot2DApp:initGL(...)
 	Plot2DApp.super.initGL(self, ...)
 	self:setGraphInfo(table.unpack(self.initArgs))
 
-	if not self.fontfile or not io.fileexists(self.fontfile) then
+	if not self.fontfile or not os.fileexists(self.fontfile) then
 		self.fontfile = (os.getenv'HOME' or os.getenv'USERPROFILE')..'/Projects/lua/plot2d/font.png'
 	end
 
