@@ -255,7 +255,7 @@ function Plot2DApp:updateGUI()
 
 	ig.igText'Graphs:'
 	local function graphGUI(graph, name)
-		ig.igPushIDStr('graph '..name)
+		ig.igPushID_Str('graph '..name)
 		checkbox(name, graph, 'enabled')
 		ig.igSameLine()
 		if ig.igCollapsingHeader'' then
