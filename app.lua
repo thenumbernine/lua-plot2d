@@ -236,31 +236,23 @@ function Plot2DApp:update(...)
 	Plot2DApp.super.update(self, ...)
 end
 
-local bool = ffi.new('bool[1]', false)
+Plot2DApp.showMouseCoords = false
 local float3 = ffi.new('float[3]')
 function Plot2DApp:updateGUI()
 	-- TODO store graphs as {name=name, ...} instead of name={...}
 	-- but that would break things that use plot2d
 	local graphNames = table.keys(self.graphs):sort()
 
-	local function checkbox(name, object, field) 
-		bool[0] = not not object[field]
-		if ig.igCheckbox(name, bool) then
-			object[field] = bool[0]
-			return true
-		end
-	end
-
-	checkbox('show coords', self, 'showMouseCoords')
+	ig.luatableCheckbox('show coords', self, 'showMouseCoords')
 
 	ig.igText'Graphs:'
 	local function graphGUI(graph, name)
 		ig.igPushID_Str('graph '..name)
-		checkbox(name, graph, 'enabled')
+		ig.luatableCheckbox(name, graph, 'enabled')
 		ig.igSameLine()
 		if ig.igCollapsingHeader'' then
-			checkbox('show lines', graph, 'showLines')
-			checkbox('show points', graph, 'showPoints')
+			ig.luatableCheckbox('show lines', graph, 'showLines')
+			ig.luatableCheckbox('show points', graph, 'showPoints')
 		
 			if graph.color then
 				for i=1,3 do
