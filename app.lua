@@ -15,7 +15,7 @@ local Plot2DApp = class(ImGuiApp)
 
 function Plot2DApp:init(...)
 	self.initArgs = {...}
-	
+
 	self.viewpos = vec2()
 	self.viewsize = vec2(1,1)
 	self.viewbbox = box2()
@@ -23,7 +23,7 @@ function Plot2DApp:init(...)
 	self.leftShiftDown = false
 	self.rightShiftDown = false
 	self.mousepos = vec2()
-	
+
 	return Plot2DApp.super.init(self, ...)
 end
 
@@ -48,7 +48,7 @@ function Plot2DApp:setGraphInfo(graphs, numRows, fontfile)
 		end
 		graph.length = length
 	end
-	
+
 	self:resetView()
 end
 
@@ -76,7 +76,8 @@ function Plot2DApp:initGL(...)
 	self:setGraphInfo(table.unpack(self.initArgs))
 
 	if not self.fontfile or not file(self.fontfile):exists() then
-		self.fontfile = (os.getenv'HOME' or os.getenv'USERPROFILE')..'/Projects/lua/plot2d/font.png'
+		-- TODO any better way of inferring the path of this file as it's being require()'d?
+		self.fontfile = os.getenv'LUA_PROJECT_PATH'..'/plot2d/font.png'
 	end
 
 	local names = table()
@@ -84,7 +85,7 @@ function Plot2DApp:initGL(...)
 		names:insert(name)
 	end
 	names:sort()
-	
+
 	local function colorForEnabled(graph)
 		if graph.enabled~=false then
 			return graph.color[1], graph.color[2], graph.color[3], 1
@@ -92,7 +93,7 @@ function Plot2DApp:initGL(...)
 			return .4, .4, .4, 1
 		end
 	end
-	
+
 	gl.glClearColor(0,0,0,0)
 end
 
@@ -100,7 +101,7 @@ function Plot2DApp:event(event, ...)
 	Plot2DApp.super.event(self, event, ...)
 	local canHandleMouse = not ig.igGetIO()[0].WantCaptureMouse
 	local canHandleKeyboard = not ig.igGetIO()[0].WantCaptureKeyboard
-	
+
 	local w, h = self:size()
 	if event.type == sdl.SDL_MOUSEMOTION then
 		self.mousepos[1], self.mousepos[2] = event.motion.x / w, event.motion.y / h
@@ -152,28 +153,28 @@ function Plot2DApp:event(event, ...)
 			end
 		elseif event.type == sdl.SDL_KEYUP then
 			if event.key.keysym.sym == sdl.SDLK_LSHIFT then
-				self.leftShiftDown = false 
+				self.leftShiftDown = false
 			elseif event.key.keysym.sym == sdl.SDLK_RSHIFT then
-				self.rightShiftDown = false 
+				self.rightShiftDown = false
 			end
 		end
 	end
 end
 
 function Plot2DApp:update(...)
-	
+
 	local w, h = self:size()
 	local ar = w / h
 	gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
 	self.viewbbox.min = self.viewpos - vec2(self.viewsize[1], self.viewsize[2])
 	self.viewbbox.max = self.viewpos + vec2(self.viewsize[1], self.viewsize[2])
-	
+
 	gl.glMatrixMode(gl.GL_PROJECTION)
 	gl.glLoadIdentity()
 	gl.glOrtho(self.viewbbox.min[1], self.viewbbox.max[1], self.viewbbox.min[2], self.viewbbox.max[2], -1, 1)
 	gl.glMatrixMode(gl.GL_MODELVIEW)
-	
+
 	gl.glBegin(gl.GL_LINES)
 	do
 		local gridScale = 5^(math.floor(math.log(self.viewsize[1]) / math.log(5))-1)
@@ -210,7 +211,7 @@ function Plot2DApp:update(...)
 		end
 	end
 	gl.glEnd()
-	
+
 	for _,graph in pairs(self.graphs) do
 		if graph.enabled~=false then
 			gl.glColor3f(graph.color[1], graph.color[2], graph.color[3])
@@ -232,7 +233,7 @@ function Plot2DApp:update(...)
 			end
 		end
 	end
-	
+
 	Plot2DApp.super.update(self, ...)
 end
 
@@ -253,7 +254,7 @@ function Plot2DApp:updateGUI()
 		if ig.igCollapsingHeader'' then
 			ig.luatableCheckbox('show lines', graph, 'showLines')
 			ig.luatableCheckbox('show points', graph, 'showPoints')
-		
+
 			if graph.color then
 				for i=1,3 do
 					float3[i-1] = graph.color[i]
