@@ -73,4 +73,4 @@ for _,fn in ipairs(arg) do
 end
 
 local plot2d = require 'plot2d'
-plot2d(graphs)
+return plot2d(graphs)

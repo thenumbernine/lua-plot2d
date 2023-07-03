@@ -29,7 +29,7 @@ local Plot2DApp = require 'plot2d.app'
 
 local function plot2d(graphs, numRows, fontfile)
 	local plot2DApp = Plot2DApp(graphs, numRows, fontfile)
-	plot2DApp:run()
+	return plot2DApp:run()
 end
 
 return plot2d
