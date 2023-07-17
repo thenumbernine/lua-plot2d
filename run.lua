@@ -14,7 +14,7 @@ local graphs = table()
 local defaultValue = 0
 
 for _,fn in ipairs(arg) do
-	if not file(fn):exists() then
+	if not path(fn):exists() then
 		io.stderr:write('file '..tostring(fn)..' does not exist\n')
 		io.stderr:flush()
 	else
@@ -49,7 +49,7 @@ for _,fn in ipairs(arg) do
 
 		local gx = table()
 		local gy = table()
-		local lines = file(fn):read():split('\n')
+		local lines = path(fn):read():split('\n')
 		for i,l in ipairs(lines) do
 			l = l:trim()
 			if #l > 0 then

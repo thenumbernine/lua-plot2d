@@ -9,7 +9,7 @@ local box2 = require 'vec.box2'
 local ImGuiApp = require 'imguiapp'
 local class = require 'ext.class'
 local table = require 'ext.table'
-local file = require 'ext.file'
+local path = require 'ext.path'
 
 local Plot2DApp = class(ImGuiApp)
 
@@ -75,7 +75,7 @@ function Plot2DApp:initGL(...)
 	Plot2DApp.super.initGL(self, ...)
 	self:setGraphInfo(table.unpack(self.initArgs))
 
-	if not self.fontfile or not file(self.fontfile):exists() then
+	if not self.fontfile or not path(self.fontfile):exists() then
 		-- TODO any better way of inferring the path of this file as it's being require()'d?
 		self.fontfile = os.getenv'LUA_PROJECT_PATH'..'/plot2d/font.png'
 	end
