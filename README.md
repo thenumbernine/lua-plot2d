@@ -22,6 +22,6 @@ Depends on:
 - lua-vec
 - lua-glapp
 - lua-ffi-bindings
+- lua-imguiapp
 - SDL
-- Imgui
-- Malkia's UFO
+- OpenGL
