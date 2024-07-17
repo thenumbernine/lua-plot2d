@@ -1,7 +1,6 @@
 ### 2D Interactive Plotting Program
 
 [![Donate via Stripe](https://img.shields.io/badge/Donate-Stripe-green.svg)](https://buy.stripe.com/00gbJZ0OdcNs9zi288)<br>
-[![Donate via Bitcoin](https://img.shields.io/badge/Donate-Bitcoin-green.svg)](bitcoin:37fsp7qQKU8XoHZGRQvVzQVP8FrEJ73cSJ)<br>
 
 Does anyone out there know of any good plotting programs?
 All the ones i've ever tried are very slow or can't import data well or are not flexible enough.
