@@ -71,8 +71,8 @@ function Plot2DApp:resetView()
 	end
 end
 
-function Plot2DApp:initGL(...)
-	Plot2DApp.super.initGL(self, ...)
+function Plot2DApp:initGL()
+	Plot2DApp.super.initGL(self)
 	self:setGraphInfo(table.unpack(self.initArgs))
 
 	if not self.fontfile or not path(self.fontfile):exists() then
@@ -97,64 +97,64 @@ function Plot2DApp:initGL(...)
 	gl.glClearColor(0,0,0,0)
 end
 
-function Plot2DApp:event(event, ...)
-	Plot2DApp.super.event(self, event, ...)
+function Plot2DApp:event(event)
+	Plot2DApp.super.event(self, event)
 	local canHandleMouse = not ig.igGetIO()[0].WantCaptureMouse
 	local canHandleKeyboard = not ig.igGetIO()[0].WantCaptureKeyboard
 
 	local w, h = self:size()
-	if event.type == sdl.SDL_MOUSEMOTION then
-		self.mousepos[1], self.mousepos[2] = event.motion.x / w, event.motion.y / h
+	if event[0].type == sdl.SDL_MOUSEMOTION then
+		self.mousepos[1], self.mousepos[2] = event[0].motion.x / w, event[0].motion.y / h
 		if self.leftButtonDown then
 			if self.leftShiftDown or self.rightShiftDown then
 				-- stretch individual axis
-				self.viewsize[1] = self.viewsize[1] * math.exp(-.01 * event.motion.xrel)
-				self.viewsize[2] = self.viewsize[2] * math.exp(.01 * event.motion.yrel)
+				self.viewsize[1] = self.viewsize[1] * math.exp(-.01 * event[0].motion.xrel)
+				self.viewsize[2] = self.viewsize[2] * math.exp(.01 * event[0].motion.yrel)
 			else
 				-- pan
 				self.viewpos = self.viewpos + vec2(
-					-event.motion.xrel / w * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-					event.motion.yrel / h * (self.viewbbox.max[2] - self.viewbbox.min[2]))
+					-event[0].motion.xrel / w * (self.viewbbox.max[1] - self.viewbbox.min[1]),
+					event[0].motion.yrel / h * (self.viewbbox.max[2] - self.viewbbox.min[2]))
 			end
 		end
-	elseif event.type == sdl.SDL_MOUSEBUTTONDOWN then
+	elseif event[0].type == sdl.SDL_MOUSEBUTTONDOWN then
 		if canHandleMouse then
-			if event.button.button == sdl.SDL_BUTTON_LEFT then
+			if event[0].button.button == sdl.SDL_BUTTON_LEFT then
 				self.leftButtonDown = true
-			elseif event.button.button == sdl.SDL_BUTTON_WHEELUP then
+			elseif event[0].button.button == sdl.SDL_BUTTON_WHEELUP then
 				local delta = vec2(
-					(event.button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-					(.5 - event.button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
+					(event[0].button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
+					(.5 - event[0].button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
 				self.viewpos = self.viewpos + delta * (1 - .9)
 				self.viewsize = self.viewsize * .9
-			elseif event.button.button == sdl.SDL_BUTTON_WHEELDOWN then
+			elseif event[0].button.button == sdl.SDL_BUTTON_WHEELDOWN then
 				local delta = vec2(
-					(event.button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-					(.5 - event.button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
+					(event[0].button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
+					(.5 - event[0].button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
 				self.viewpos = self.viewpos + delta * (1 - 1 / .9)
 				self.viewsize = self.viewsize / .9
 			end
 		end
-	elseif event.type == sdl.SDL_MOUSEBUTTONUP then
+	elseif event[0].type == sdl.SDL_MOUSEBUTTONUP then
 		if canHandleMouse then
-			if event.button.button == sdl.SDL_BUTTON_LEFT then
+			if event[0].button.button == sdl.SDL_BUTTON_LEFT then
 				self.leftButtonDown = false
 			end
 		end
 	end
 	if canHandleKeyboard then
-		if event.type == sdl.SDL_KEYDOWN then
-			if event.key.keysym.sym == sdl.SDLK_r then
+		if event[0].type == sdl.SDL_KEYDOWN then
+			if event[0].key.keysym.sym == sdl.SDLK_r then
 				self:resetView()
-			elseif event.key.keysym.sym == sdl.SDLK_LSHIFT then
+			elseif event[0].key.keysym.sym == sdl.SDLK_LSHIFT then
 				self.leftShiftDown = true
-			elseif event.key.keysym.sym == sdl.SDLK_RSHIFT then
+			elseif event[0].key.keysym.sym == sdl.SDLK_RSHIFT then
 				self.rightShiftDown = true
 			end
-		elseif event.type == sdl.SDL_KEYUP then
-			if event.key.keysym.sym == sdl.SDLK_LSHIFT then
+		elseif event[0].type == sdl.SDL_KEYUP then
+			if event[0].key.keysym.sym == sdl.SDLK_LSHIFT then
 				self.leftShiftDown = false
-			elseif event.key.keysym.sym == sdl.SDLK_RSHIFT then
+			elseif event[0].key.keysym.sym == sdl.SDLK_RSHIFT then
 				self.rightShiftDown = false
 			end
 		end
