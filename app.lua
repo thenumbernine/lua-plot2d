@@ -11,7 +11,8 @@ local class = require 'ext.class'
 local table = require 'ext.table'
 local path = require 'ext.path'
 
-local Plot2DApp = class(ImGuiApp)
+local Plot2DApp = ImGuiApp:subclass()
+Plot2DApp.viewUseGLMatrixMode = true
 
 function Plot2DApp:init(...)
 	self.initArgs = {...}
