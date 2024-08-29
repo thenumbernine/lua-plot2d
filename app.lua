@@ -11,78 +11,7 @@ local vec3 = require 'vec.vec3'
 local box2 = require 'vec.box2'
 local ImGuiApp = require 'imguiapp'
 
-
-local asserteq = require 'ext.assert'.eq
-local assertindex = require 'ext.assert'.index
-local vector = require 'ffi.cpp.vector-lua'
-local vec2f = require 'vec-ffi.vec2f'
-local vec3f = require 'vec-ffi.vec3f'
-local vec4f = require 'vec-ffi.vec4f'
 local GLSceneObject = require 'gl.sceneobject'
-local GLArrayBuffer = require 'gl.arraybuffer'
-
---[[
-Here's a GLSceneObject but with all its attributes' buffers doubled on the CPU side as vectors, and per-frame filling out of the data, and automatic resize of GPU buffers ... similar to immediate mode.
-It'd be nice to just have GLArrayBuffer+vector ...
---]]
-local GLSceneObjWithVec = GLSceneObject:subclass()
-
-function GLSceneObjWithVec:init(...)
-	GLSceneObjWithVec.super.init(self, ...)
-	for name,attr in pairs(self.attrs) do
-		local buffer = attr.buffer
-		local dim = attr.dim or error("failed to find dim for buffer of attr "..name)
-		local vec = vector(assertindex({
-			'float',
-			'vec2f_t',
-			'vec3f_t',
-			'vec4f_t'
-		}, dim), 0)
-		buffer.vec = vec
-		buffer:bind()
-			:setData{
-				data = vec.v,
-				count = vec.capacity,
-				size = ffi.sizeof(vec.type) * vec.capacity,
-				dim = dim,
-			}
-	end
-end
-
-function GLSceneObjWithVec:beginVtxs()
-	local vtxbuf = self.attrs.vertex.buffer
-	for _,attr in pairs(self.attrs) do
-		local buffer = attr.buffer
-		local vec = buffer.vec
-		buffer.oldcap = vec.capacity
-		asserteq(buffer.oldcap, vtxbuf.vec.capacity)
-		vec:resize(0)
-	end
-end
-
-function GLSceneObjWithVec:endVtxs()
-	local vtxbuf = self.attrs.vertex.buffer
-	for name,attr in pairs(self.attrs) do
-		local buffer = attr.buffer
-		local vec = buffer.vec
-		asserteq(vec.capacity, vtxbuf.vec.capacity)
-		if vec.capacity ~= buffer.oldcap then
-			buffer:bind()
-				:setData{
-					data = vec.v,
-					dim = buffer.dim,
-					count = vec.capacity,
-					size = ffi.sizeof(vec.type) * vec.capacity,
-				}
-		else
-			asserteq(vec.v, buffer.data)
-			buffer:bind()
-				:updateData()	-- data cap hasn't resized / data ptr hasn't moved / just copy
-		end
-	end
-	self.geometry.count = #vtxbuf.vec
-	self:draw()
-end
 
 
 local Plot2DApp = ImGuiApp:subclass()
@@ -152,7 +81,7 @@ function Plot2DApp:initGL()
 		ortho = true,
 	}
 
-	self.lineObj = GLSceneObjWithVec{
+	self.lineObj = GLSceneObject{
 		program = {
 			version = 'latest',
 			precision = 'best',
@@ -173,6 +102,7 @@ void main() {
 		},
 		vertexes = {
 			dim = 4,
+			useVec = true,
 		},
 		geometry = {
 			mode = gl.GL_LINES,
@@ -283,7 +213,7 @@ function Plot2DApp:update(...)
 	self.lineObj.uniforms.mvProjMat = self.view.mvProjMat.ptr
 	self.lineObj.uniforms.color = {.2, .2, .2, 1}
 	local vertexVec = self.lineObj.attrs.vertex.buffer.vec
-	self.lineObj:beginVtxs()
+	self.lineObj:beginUpdate()
 	do
 		local gridScale = 5^(math.floor(math.log(self.viewsize[1]) / math.log(5))-1)
 		local ixmin = math.floor(self.viewbbox.min[1]/gridScale)
@@ -306,10 +236,10 @@ function Plot2DApp:update(...)
 			end
 		end
 	end
-	self.lineObj:endVtxs()
+	self.lineObj:endUpdate()
 
 	self.lineObj.uniforms.color = {.5, .5, .5, 1}
-	self.lineObj:beginVtxs()
+	self.lineObj:beginUpdate()
 	do
 		if self.viewbbox.min[1] < 0 and self.viewbbox.max[1] > 0 then
 			vertexVec:emplace_back():set(0, self.viewbbox.min[2], 0, 1)
@@ -320,18 +250,18 @@ function Plot2DApp:update(...)
 			vertexVec:emplace_back():set(self.viewbbox.max[1], 0, 0, 1)
 		end
 	end
-	self.lineObj:endVtxs()
+	self.lineObj:endUpdate()
 
 	for _,graph in pairs(self.graphs) do
 		if graph.enabled~=false then
 			self.lineObj.uniforms.color = {graph.color[1], graph.color[2], graph.color[3], 1}
 			if graph.showLines~=false then
 				self.lineObj.geometry.mode = gl.GL_LINE_STRIP
-				self.lineObj:beginVtxs()
+				self.lineObj:beginUpdate()
 				for i=1,graph.length do
 					vertexVec:emplace_back():set(graph[1][i], graph[2][i], 0, 1)
 				end
-				self.lineObj:endVtxs()
+				self.lineObj:endUpdate()
 				self.lineObj.geometry.mode = gl.GL_LINES
 			end
 			if graph.showPoints then
@@ -341,7 +271,7 @@ function Plot2DApp:update(...)
 				for i=1,graph.length do
 					gl.glVertex2d(graph[1][i], graph[2][i])
 				end
-				self.lineObj:endVtxs()
+				self.lineObj:endUpdate()
 				self.lineObj.geometry.mode = gl.GL_LINES
 				gl.glPointSize(1)
 			end
