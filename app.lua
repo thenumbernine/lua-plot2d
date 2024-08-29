@@ -267,9 +267,9 @@ function Plot2DApp:update(...)
 			if graph.showPoints then
 				gl.glPointSize(graph.pointSize or 3)	-- TODO only show points when zoomed in such that the smallest distance ... mean distance between points is greater than 3 pixels on the screen
 				self.lineObj.geometry.mode = gl.GL_POINTS
-				gl.glBegin(gl.GL_POINTS)
+				self.lineObj:beginUpdate()
 				for i=1,graph.length do
-					gl.glVertex2d(graph[1][i], graph[2][i])
+					vertexVec:emplace_back():set(graph[1][i], graph[2][i], 0, 1)
 				end
 				self.lineObj:endUpdate()
 				self.lineObj.geometry.mode = gl.GL_LINES
