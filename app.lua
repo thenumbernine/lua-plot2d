@@ -23,23 +23,22 @@ local GLArrayBuffer = require 'gl.arraybuffer'
 
 --[[
 Here's a GLSceneObject but with all its attributes' buffers doubled on the CPU side as vectors, and per-frame filling out of the data, and automatic resize of GPU buffers ... similar to immediate mode.
-It'd be nice to just have GLArrayBuffer+vector, or maybe GLAttribute+vector.
-But even if I did either of those things, this would still need to know when the buffer was resized, so the VAO could be rebound (right?)
+It'd be nice to just have GLArrayBuffer+vector ...
 --]]
 local GLSceneObjWithVec = GLSceneObject:subclass()
 
 function GLSceneObjWithVec:init(...)
 	GLSceneObjWithVec.super.init(self, ...)
 	for name,attr in pairs(self.attrs) do
-		local buffer = assertindex(attr, 'buffer')
+		local buffer = attr.buffer
 		local dim = attr.dim or error("failed to find dim for buffer of attr "..name)
 		local vec = vector(assertindex({
 			'float',
 			'vec2f_t',
 			'vec3f_t',
 			'vec4f_t'
-		}, dim), 4096)
-		attr.vec = vec
+		}, dim), 0)
+		buffer.vec = vec
 		buffer:bind()
 			:setData{
 				data = vec.v,
@@ -51,37 +50,40 @@ function GLSceneObjWithVec:init(...)
 end
 
 function GLSceneObjWithVec:beginVtxs()
-	local vtxattr = assertindex(self.attrs, 'vertex')
+	local vtxbuf = self.attrs.vertex.buffer
 	for _,attr in pairs(self.attrs) do
-		attr.oldcap = attr.vec.capacity
-		asserteq(attr.oldcap, vtxattr.vec.capacity)
-		attr.vec:resize(0)
+		local buffer = attr.buffer
+		local vec = buffer.vec
+		buffer.oldcap = vec.capacity
+		asserteq(buffer.oldcap, vtxbuf.vec.capacity)
+		vec:resize(0)
 	end
 end
 
 function GLSceneObjWithVec:endVtxs()
-	local vtxattr = assertindex(self.attrs, 'vertex')
+	local vtxbuf = self.attrs.vertex.buffer
 	for name,attr in pairs(self.attrs) do
-		local vec = assertindex(attr, 'vec')
-		local buffer = assertindex(attr, 'buffer')
-		asserteq(vec.capacity, vtxattr.vec.capacity)
-		if vec.capacity ~= attr.oldcap then
-			attr.buffer = GLArrayBuffer{
-				data = vec.v,
-				dim = buffer.dim,
-				count = vec.capacity,
-				size = ffi.sizeof(vec.type) * vec.capacity,
-			}
-			buffer = attr.buffer
+		local buffer = attr.buffer
+		local vec = buffer.vec
+		asserteq(vec.capacity, vtxbuf.vec.capacity)
+		if vec.capacity ~= buffer.oldcap then
+			buffer:bind()
+				:setData{
+					data = vec.v,
+					dim = buffer.dim,
+					count = vec.capacity,
+					size = ffi.sizeof(vec.type) * vec.capacity,
+				}
 		else
 			asserteq(vec.v, buffer.data)
 			buffer:bind()
 				:updateData()	-- data cap hasn't resized / data ptr hasn't moved / just copy
 		end
 	end
-	self.geometry.count = #vtxattr.vec
+	self.geometry.count = #vtxbuf.vec
 	self:draw()
 end
+
 
 local Plot2DApp = ImGuiApp:subclass()
 
@@ -176,11 +178,6 @@ void main() {
 			mode = gl.GL_LINES,
 		},
 	}
-	assert(require 'gl.attribute':isa(self.lineObj.attrs.vertex))
-	asserteq(self.lineObj.attrs.vertex.dim, 4)
-	assert(require 'gl.buffer':isa(self.lineObj.attrs.vertex.buffer))
-	-- why isn't this saved here?
-	asserteq(self.lineObj.attrs.vertex.buffer.dim, 4)
 
 	self:setGraphInfo(table.unpack(self.initArgs))
 
@@ -285,7 +282,7 @@ function Plot2DApp:update(...)
 
 	self.lineObj.uniforms.mvProjMat = self.view.mvProjMat.ptr
 	self.lineObj.uniforms.color = {.2, .2, .2, 1}
-	local vertexVec = self.lineObj.attrs.vertex.vec
+	local vertexVec = self.lineObj.attrs.vertex.buffer.vec
 	self.lineObj:beginVtxs()
 	do
 		local gridScale = 5^(math.floor(math.log(self.viewsize[1]) / math.log(5))-1)
