@@ -1,4 +1,7 @@
 local ffi = require 'ffi'
+local class = require 'ext.class'
+local table = require 'ext.table'
+local path = require 'ext.path'
 local gl = require 'gl'
 local glu = require 'ffi.req' 'glu'
 local sdl = require 'ffi.req' 'sdl'
@@ -7,12 +10,80 @@ local vec2 = require 'vec.vec2'
 local vec3 = require 'vec.vec3'
 local box2 = require 'vec.box2'
 local ImGuiApp = require 'imguiapp'
-local class = require 'ext.class'
-local table = require 'ext.table'
-local path = require 'ext.path'
+
+
+local asserteq = require 'ext.assert'.eq
+local assertindex = require 'ext.assert'.index
+local vector = require 'ffi.cpp.vector-lua'
+local vec2f = require 'vec-ffi.vec2f'
+local vec3f = require 'vec-ffi.vec3f'
+local vec4f = require 'vec-ffi.vec4f'
+local GLSceneObject = require 'gl.sceneobject'
+local GLArrayBuffer = require 'gl.arraybuffer'
+
+--[[
+Here's a GLSceneObject but with all its attributes' buffers doubled on the CPU side as vectors, and per-frame filling out of the data, and automatic resize of GPU buffers ... similar to immediate mode.
+It'd be nice to just have GLArrayBuffer+vector, or maybe GLAttribute+vector.
+But even if I did either of those things, this would still need to know when the buffer was resized, so the VAO could be rebound (right?)
+--]]
+local GLSceneObjWithVec = GLSceneObject:subclass()
+
+function GLSceneObjWithVec:init(...)
+	GLSceneObjWithVec.super.init(self, ...)
+	for name,attr in pairs(self.attrs) do
+		local buffer = assertindex(attr, 'buffer')
+		local dim = attr.dim or error("failed to find dim for buffer of attr "..name)
+		local vec = vector(assertindex({
+			'float',
+			'vec2f_t',
+			'vec3f_t',
+			'vec4f_t'
+		}, dim), 4096)
+		attr.vec = vec
+		buffer:bind()
+			:setData{
+				data = vec.v,
+				count = vec.capacity,
+				size = ffi.sizeof(vec.type) * vec.capacity,
+				dim = dim,
+			}
+	end
+end
+
+function GLSceneObjWithVec:beginVtxs()
+	local vtxattr = assertindex(self.attrs, 'vertex')
+	for _,attr in pairs(self.attrs) do
+		attr.oldcap = attr.vec.capacity
+		asserteq(attr.oldcap, vtxattr.vec.capacity)
+		attr.vec:resize(0)
+	end
+end
+
+function GLSceneObjWithVec:endVtxs()
+	local vtxattr = assertindex(self.attrs, 'vertex')
+	for name,attr in pairs(self.attrs) do
+		local vec = assertindex(attr, 'vec')
+		local buffer = assertindex(attr, 'buffer')
+		asserteq(vec.capacity, vtxattr.vec.capacity)
+		if vec.capacity ~= attr.oldcap then
+			attr.buffer = GLArrayBuffer{
+				data = vec.v,
+				dim = buffer.dim,
+				count = vec.capacity,
+				size = ffi.sizeof(vec.type) * vec.capacity,
+			}
+			buffer = attr.buffer
+		else
+			asserteq(vec.v, buffer.data)
+			buffer:bind()
+				:updateData()	-- data cap hasn't resized / data ptr hasn't moved / just copy
+		end
+	end
+	self.geometry.count = #vtxattr.vec
+	self:draw()
+end
 
 local Plot2DApp = ImGuiApp:subclass()
-Plot2DApp.viewUseGLMatrixMode = true
 
 function Plot2DApp:init(...)
 	self.initArgs = {...}
@@ -25,7 +96,7 @@ function Plot2DApp:init(...)
 	self.rightShiftDown = false
 	self.mousepos = vec2()
 
-	return Plot2DApp.super.init(self, ...)
+	Plot2DApp.super.init(self, ...)
 end
 
 function Plot2DApp:setGraphInfo(graphs, numRows, fontfile)
@@ -74,6 +145,43 @@ end
 
 function Plot2DApp:initGL()
 	Plot2DApp.super.initGL(self)
+
+	self.view = require 'glapp.view'{
+		ortho = true,
+	}
+
+	self.lineObj = GLSceneObjWithVec{
+		program = {
+			version = 'latest',
+			precision = 'best',
+			vertexCode = [[
+in vec4 vertex;
+uniform mat4 mvProjMat;
+void main() {
+	gl_Position = mvProjMat * vertex;
+}
+]],
+			fragmentCode = [[
+out vec4 fragColor;
+uniform vec4 color;
+void main() {
+	fragColor = color;
+}
+]],
+		},
+		vertexes = {
+			dim = 4,
+		},
+		geometry = {
+			mode = gl.GL_LINES,
+		},
+	}
+	assert(require 'gl.attribute':isa(self.lineObj.attrs.vertex))
+	asserteq(self.lineObj.attrs.vertex.dim, 4)
+	assert(require 'gl.buffer':isa(self.lineObj.attrs.vertex.buffer))
+	-- why isn't this saved here?
+	asserteq(self.lineObj.attrs.vertex.buffer.dim, 4)
+
 	self:setGraphInfo(table.unpack(self.initArgs))
 
 	if not self.fontfile or not path(self.fontfile):exists() then
@@ -171,22 +279,23 @@ function Plot2DApp:update(...)
 	self.viewbbox.min = self.viewpos - vec2(self.viewsize[1], self.viewsize[2])
 	self.viewbbox.max = self.viewpos + vec2(self.viewsize[1], self.viewsize[2])
 
-	gl.glMatrixMode(gl.GL_PROJECTION)
-	gl.glLoadIdentity()
-	gl.glOrtho(self.viewbbox.min[1], self.viewbbox.max[1], self.viewbbox.min[2], self.viewbbox.max[2], -1, 1)
-	gl.glMatrixMode(gl.GL_MODELVIEW)
+	self.view.mvMat:setIdent()
+	self.view.projMat:setOrtho(self.viewbbox.min[1], self.viewbbox.max[1], self.viewbbox.min[2], self.viewbbox.max[2], -1, 1)
+	self.view.mvProjMat:copy(self.view.projMat)
 
-	gl.glBegin(gl.GL_LINES)
+	self.lineObj.uniforms.mvProjMat = self.view.mvProjMat.ptr
+	self.lineObj.uniforms.color = {.2, .2, .2, 1}
+	local vertexVec = self.lineObj.attrs.vertex.vec
+	self.lineObj:beginVtxs()
 	do
 		local gridScale = 5^(math.floor(math.log(self.viewsize[1]) / math.log(5))-1)
-		gl.glColor3f(.2, .2, .2)
 		local ixmin = math.floor(self.viewbbox.min[1]/gridScale)
 		local ixmax = math.ceil(self.viewbbox.max[1]/gridScale)
 		if ixmax - ixmin < 100 then
 			for ix=ixmin,ixmax do
 				local x = ix * gridScale
-				gl.glVertex2d(x, self.viewbbox.min[2])
-				gl.glVertex2d(x, self.viewbbox.max[2])
+				vertexVec:emplace_back():set(x, self.viewbbox.min[2], 0, 1)
+				vertexVec:emplace_back():set(x, self.viewbbox.max[2], 0, 1)
 			end
 		end
 		local gridScale = 5^(math.floor(math.log(self.viewsize[2]) / math.log(5))-1)
@@ -195,41 +304,48 @@ function Plot2DApp:update(...)
 		if iymax - iymin < 100 then
 			for iy=iymin,iymax do
 				local y = iy * gridScale
-				gl.glVertex2d(self.viewbbox.min[1], y)
-				gl.glVertex2d(self.viewbbox.max[1], y)
+				vertexVec:emplace_back():set(self.viewbbox.min[1], y, 0, 1)
+				vertexVec:emplace_back():set(self.viewbbox.max[1], y, 0, 1)
 			end
 		end
 	end
+	self.lineObj:endVtxs()
+
+	self.lineObj.uniforms.color = {.5, .5, .5, 1}
+	self.lineObj:beginVtxs()
 	do
-		gl.glColor3f(.5, .5, .5)
 		if self.viewbbox.min[1] < 0 and self.viewbbox.max[1] > 0 then
-			gl.glVertex2d(0, self.viewbbox.min[2])
-			gl.glVertex2d(0, self.viewbbox.max[2])
+			vertexVec:emplace_back():set(0, self.viewbbox.min[2], 0, 1)
+			vertexVec:emplace_back():set(0, self.viewbbox.max[2], 0, 1)
 		end
 		if self.viewbbox.min[2] < 0 and self.viewbbox.max[2] > 0 then
-			gl.glVertex2d(self.viewbbox.min[1], 0)
-			gl.glVertex2d(self.viewbbox.max[1], 0)
+			vertexVec:emplace_back():set(self.viewbbox.min[1], 0, 0, 1)
+			vertexVec:emplace_back():set(self.viewbbox.max[1], 0, 0, 1)
 		end
 	end
-	gl.glEnd()
+	self.lineObj:endVtxs()
 
 	for _,graph in pairs(self.graphs) do
 		if graph.enabled~=false then
-			gl.glColor3f(graph.color[1], graph.color[2], graph.color[3])
+			self.lineObj.uniforms.color = {graph.color[1], graph.color[2], graph.color[3], 1}
 			if graph.showLines~=false then
-				gl.glBegin(gl.GL_LINE_STRIP)
+				self.lineObj.geometry.mode = gl.GL_LINE_STRIP
+				self.lineObj:beginVtxs()
 				for i=1,graph.length do
-					gl.glVertex2d(graph[1][i], graph[2][i])
+					vertexVec:emplace_back():set(graph[1][i], graph[2][i], 0, 1)
 				end
-				gl.glEnd()
+				self.lineObj:endVtxs()
+				self.lineObj.geometry.mode = gl.GL_LINES
 			end
 			if graph.showPoints then
 				gl.glPointSize(graph.pointSize or 3)	-- TODO only show points when zoomed in such that the smallest distance ... mean distance between points is greater than 3 pixels on the screen
+				self.lineObj.geometry.mode = gl.GL_POINTS
 				gl.glBegin(gl.GL_POINTS)
 				for i=1,graph.length do
 					gl.glVertex2d(graph[1][i], graph[2][i])
 				end
-				gl.glEnd()
+				self.lineObj:endVtxs()
+				self.lineObj.geometry.mode = gl.GL_LINES
 				gl.glPointSize(1)
 			end
 		end
