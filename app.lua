@@ -315,12 +315,15 @@ function Plot2DApp:updateGUI()
 	local function graphGUI(graph, name)
 		ig.igPushID_Str('graph '..name)
 
-		if self.conciseView then
+		if not self.conciseView then
 			ig.igText(name)
-			ig.igSameLine()
 		end
 
-		checkbox(name, graph, 'enabled')
+		if self.conciseView then
+			ig.luatableTooltipCheckbox(name, graph, 'enabled')
+		else
+			ig.luatableCheckbox(name, graph, 'enabled')
+		end
 		if self.conciseView or ig.igCollapsingHeader'' then
 			checkbox('show lines', graph, 'showLines')
 			checkbox('show points', graph, 'showPoints')
@@ -342,6 +345,10 @@ function Plot2DApp:updateGUI()
 					-- TODO modal window of this ...
 					ig.luatableColorPicker3('color', graph, 'color', 0)
 				end
+			end
+			if self.conciseView then
+				ig.igSameLine()
+				ig.igText(name)
 			end
 		end
 		ig.igPopID()
