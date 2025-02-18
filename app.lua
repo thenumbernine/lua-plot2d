@@ -327,13 +327,21 @@ function Plot2DApp:updateGUI()
 
 			if graph.color then
 				ig.igSameLine()
-				-- [[ edit R G B or picker
+				--[[ edit R G B or picker
 				ig.luatableColorEdit3('color', graph, 'color', 0)
 				--]]
 				--[[ giant embedded picker
 				ig.luatableColorPicker3('color', graph, 'color', 0)
 				--]]
 				-- would be nice to have the picker upon popup, like igColorEdit3 does, but without the R G B text entry that igColorEdit3 does ...
+				if ig.igColorButton(
+					'color',
+					ig.ImVec4(graph.color[1], graph.color[2], graph.color[3], 1),
+					0
+				) then
+					-- TODO modal window of this ...
+					ig.luatableColorPicker3('color', graph, 'color', 0)
+				end
 			end
 		end
 		ig.igPopID()
