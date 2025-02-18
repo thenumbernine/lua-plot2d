@@ -289,34 +289,51 @@ function Plot2DApp:update(...)
 	Plot2DApp.super.update(self, ...)
 end
 
+-- [[ longer name
+local function checkboxLong(...)
+	return ig.luatableCheckbox(...)
+end
+--]]
+-- [[ shorter name
+local function checkboxShort(...)
+	ig.igSameLine()
+	return ig.luatableTooltipCheckbox(...)
+end
+--]]
+
 Plot2DApp.showMouseCoords = false
-local float3 = ffi.new('float[3]')
 function Plot2DApp:updateGUI()
 	-- TODO store graphs as {name=name, ...} instead of name={...}
 	-- but that would break things that use plot2d
 	local graphNames = table.keys(self.graphs):sort()
 
-	ig.luatableCheckbox('show coords', self, 'showMouseCoords')
+	local checkbox = self.conciseView and checkboxShort or checkboxLong
+
+	checkbox('show coords', self, 'showMouseCoords')
 
 	ig.igText'Graphs:'
 	local function graphGUI(graph, name)
 		ig.igPushID_Str('graph '..name)
 
-		ig.luatableCheckbox(name, graph, 'enabled')
-		ig.igSameLine()
-		if ig.igCollapsingHeader'' then
-			ig.luatableCheckbox('show lines', graph, 'showLines')
-			ig.luatableCheckbox('show points', graph, 'showPoints')
+		if self.conciseView then
+			ig.igText(name)
+			ig.igSameLine()
+		end
+
+		checkbox(name, graph, 'enabled')
+		if self.conciseView or ig.igCollapsingHeader'' then
+			checkbox('show lines', graph, 'showLines')
+			checkbox('show points', graph, 'showPoints')
 
 			if graph.color then
-				for i=1,3 do
-					float3[i-1] = graph.color[i]
-				end
-				if ig.igColorEdit3('color', float3, 0) then
-					for i=1,3 do
-						graph.color[i] = float3[i-1]
-					end
-				end
+				ig.igSameLine()
+				-- [[ edit R G B or picker
+				ig.luatableColorEdit3('color', graph, 'color', 0)
+				--]]
+				--[[ giant embedded picker
+				ig.luatableColorPicker3('color', graph, 'color', 0)
+				--]]
+				-- would be nice to have the picker upon popup, like igColorEdit3 does, but without the R G B text entry that igColorEdit3 does ...
 			end
 		end
 		ig.igPopID()
