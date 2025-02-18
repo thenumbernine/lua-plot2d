@@ -2,6 +2,7 @@ local ffi = require 'ffi'
 local class = require 'ext.class'
 local table = require 'ext.table'
 local path = require 'ext.path'
+local assert = require 'ext.assert'
 local gl = require 'gl'
 local glu = require 'ffi.req' 'glu'
 local sdl = require 'ffi.req' 'sdl'
@@ -30,8 +31,9 @@ function Plot2DApp:init(...)
 	Plot2DApp.super.init(self, ...)
 end
 
+-- TODO somehow, try to unify the API of this and of gnuplot package
 function Plot2DApp:setGraphInfo(graphs, numRows, fontfile)
-	self.graphs = graphs
+	self.graphs = graphs or {}
 	self.numRows = numRows
 	self.fontfile = fontfile
 
@@ -41,12 +43,18 @@ function Plot2DApp:setGraphInfo(graphs, numRows, fontfile)
 			c = c / math.max(table.unpack(c))
 			graph.color = c
 		end
+
+		-- for imgui ... should I move this check there?
+		if graph.enabled == nil then graph.enabled = true end
+		if graph.showLines == nil then graph.showLines = true end
+		if graph.showPoints == nil then graph.showPoints = false end
+
 		local length
 		for _,data in ipairs(graph) do
 			if not length then
 				length = #data
 			else
-				assert(#data == length, "data mismatched length, found "..#data.." expected "..length)
+				assert.eq(#data, length, "data mismatched length, found "..#data.." expected "..length)
 			end
 		end
 		graph.length = length
@@ -253,9 +261,9 @@ function Plot2DApp:update(...)
 	self.lineObj:endUpdate()
 
 	for _,graph in pairs(self.graphs) do
-		if graph.enabled~=false then
+		if graph.enabled then
 			self.lineObj.uniforms.color = {graph.color[1], graph.color[2], graph.color[3], 1}
-			if graph.showLines~=false then
+			if graph.showLines then
 				self.lineObj.geometry.mode = gl.GL_LINE_STRIP
 				self.lineObj:beginUpdate()
 				for i=1,graph.length do
@@ -293,6 +301,7 @@ function Plot2DApp:updateGUI()
 	ig.igText'Graphs:'
 	local function graphGUI(graph, name)
 		ig.igPushID_Str('graph '..name)
+
 		ig.luatableCheckbox(name, graph, 'enabled')
 		ig.igSameLine()
 		if ig.igCollapsingHeader'' then
@@ -334,7 +343,7 @@ function Plot2DApp:updateGUI()
 
 	for _,name in ipairs(graphNames) do
 		local graph = self.graphs[name]
-		graphGUI(graph, name)
+		graphGUI(graph, tostring(name))
 	end
 
 	if self.showMouseCoords then
