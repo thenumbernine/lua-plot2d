@@ -289,17 +289,56 @@ function Plot2DApp:update(...)
 	Plot2DApp.super.update(self, ...)
 end
 
--- [[ longer name
-local function checkboxLong(...)
-	return ig.luatableCheckbox(...)
+function Plot2DApp:checkbox(...)
+	if self.conciseView then
+		ig.igSameLine()
+		return ig.luatableTooltipCheckbox(...)
+	else 
+		return ig.luatableCheckbox(...)
+	end
 end
---]]
--- [[ shorter name
-local function checkboxShort(...)
-	ig.igSameLine()
-	return ig.luatableTooltipCheckbox(...)
+
+function Plot2DApp:addGUIRow(graph, name)
+	ig.igPushID_Str('graph '..name)
+
+	if not self.conciseView then
+		ig.igText(name)
+	end
+
+	if self.conciseView then
+		ig.luatableTooltipCheckbox(name, graph, 'enabled')
+	else
+		ig.luatableCheckbox(name, graph, 'enabled')
+	end
+	if self.conciseView or ig.igCollapsingHeader'' then
+		self:checkbox('show lines', graph, 'showLines')
+		self:checkbox('show points', graph, 'showPoints')
+
+		if graph.color then
+			ig.igSameLine()
+			--[[ edit R G B or picker
+			ig.luatableColorEdit3('color', graph, 'color', 0)
+			--]]
+			--[[ giant embedded picker
+			ig.luatableColorPicker3('color', graph, 'color', 0)
+			--]]
+			-- would be nice to have the picker upon popup, like igColorEdit3 does, but without the R G B text entry that igColorEdit3 does ...
+			if ig.igColorButton(
+				'color',
+				ig.ImVec4(graph.color[1], graph.color[2], graph.color[3], 1),
+				0
+			) then
+				-- TODO modal window of this ...
+				ig.luatableColorPicker3('color', graph, 'color', 0)
+			end
+		end
+		if self.conciseView then
+			ig.igSameLine()
+			ig.igText(name)
+		end
+	end
+	ig.igPopID()
 end
---]]
 
 Plot2DApp.showMouseCoords = false
 function Plot2DApp:updateGUI()
@@ -307,52 +346,9 @@ function Plot2DApp:updateGUI()
 	-- but that would break things that use plot2d
 	local graphNames = table.keys(self.graphs):sort()
 
-	local checkbox = self.conciseView and checkboxShort or checkboxLong
-
-	checkbox('show coords', self, 'showMouseCoords')
+	self:checkbox('show coords', self, 'showMouseCoords')
 
 	ig.igText'Graphs:'
-	local function graphGUI(graph, name)
-		ig.igPushID_Str('graph '..name)
-
-		if not self.conciseView then
-			ig.igText(name)
-		end
-
-		if self.conciseView then
-			ig.luatableTooltipCheckbox(name, graph, 'enabled')
-		else
-			ig.luatableCheckbox(name, graph, 'enabled')
-		end
-		if self.conciseView or ig.igCollapsingHeader'' then
-			checkbox('show lines', graph, 'showLines')
-			checkbox('show points', graph, 'showPoints')
-
-			if graph.color then
-				ig.igSameLine()
-				--[[ edit R G B or picker
-				ig.luatableColorEdit3('color', graph, 'color', 0)
-				--]]
-				--[[ giant embedded picker
-				ig.luatableColorPicker3('color', graph, 'color', 0)
-				--]]
-				-- would be nice to have the picker upon popup, like igColorEdit3 does, but without the R G B text entry that igColorEdit3 does ...
-				if ig.igColorButton(
-					'color',
-					ig.ImVec4(graph.color[1], graph.color[2], graph.color[3], 1),
-					0
-				) then
-					-- TODO modal window of this ...
-					ig.luatableColorPicker3('color', graph, 'color', 0)
-				end
-			end
-			if self.conciseView then
-				ig.igSameLine()
-				ig.igText(name)
-			end
-		end
-		ig.igPopID()
-	end
 
 	local graphFields = table{'enabled', 'showLines', 'showPoints'}
 	local all = graphFields:map(function(field) return true, field end)
@@ -363,7 +359,7 @@ function Plot2DApp:updateGUI()
 		end
 	end
 	local allWas = table(all)
-	graphGUI(all, 'all')
+	self:addGUIRow(all, 'all')
 	for _,field in ipairs(graphFields) do
 		if all[field] ~= allWas[field] then
 			for _,name in ipairs(graphNames) do
@@ -375,7 +371,7 @@ function Plot2DApp:updateGUI()
 
 	for _,name in ipairs(graphNames) do
 		local graph = self.graphs[name]
-		graphGUI(graph, tostring(name))
+		self:addGUIRow(graph, tostring(name))
 	end
 
 	if self.showMouseCoords then
