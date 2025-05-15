@@ -21,6 +21,6 @@ Depends on:
 - lua-vec
 - lua-glapp
 - lua-ffi-bindings
-- lua-imguiapp
+- lua-imgui
 - SDL
 - OpenGL
