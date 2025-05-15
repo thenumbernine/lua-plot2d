@@ -10,7 +10,7 @@ local ig = require 'imgui'
 local vec2 = require 'vec.vec2'
 local vec3 = require 'vec.vec3'
 local box2 = require 'vec.box2'
-local ImGuiApp = require 'imguiapp'
+local ImGuiApp = require 'imgui.app'
 
 local GLSceneObject = require 'gl.sceneobject'
 
