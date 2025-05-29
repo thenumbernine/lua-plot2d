@@ -147,7 +147,7 @@ function Plot2DApp:event(event)
 	local canHandleKeyboard = not ig.igGetIO()[0].WantCaptureKeyboard
 
 	local w, h = self:size()
-	if event[0].type == sdl.SDL_MOUSEMOTION then
+	if event[0].type == sdl.SDL_EVENT_MOUSE_MOTION then
 		self.mousepos[1], self.mousepos[2] = event[0].motion.x / w, event[0].motion.y / h
 		if self.leftButtonDown then
 			if self.leftShiftDown or self.rightShiftDown then
@@ -161,7 +161,7 @@ function Plot2DApp:event(event)
 					event[0].motion.yrel / h * (self.viewbbox.max[2] - self.viewbbox.min[2]))
 			end
 		end
-	elseif event[0].type == sdl.SDL_MOUSEBUTTONDOWN then
+	elseif event[0].type == sdl.SDL_EVENT_MOUSE_BUTTON_DOWN then
 		if canHandleMouse then
 			if event[0].button.button == sdl.SDL_BUTTON_LEFT then
 				self.leftButtonDown = true
@@ -179,7 +179,7 @@ function Plot2DApp:event(event)
 				self.viewsize = self.viewsize / .9
 			end
 		end
-	elseif event[0].type == sdl.SDL_MOUSEBUTTONUP then
+	elseif event[0].type == sdl.SDL_EVENT_MOUSE_BUTTON_UP then
 		if canHandleMouse then
 			if event[0].button.button == sdl.SDL_BUTTON_LEFT then
 				self.leftButtonDown = false
@@ -187,18 +187,18 @@ function Plot2DApp:event(event)
 		end
 	end
 	if canHandleKeyboard then
-		if event[0].type == sdl.SDL_KEYDOWN then
-			if event[0].key.keysym.sym == sdl.SDLK_r then
+		if event[0].type == sdl.SDL_EVENT_KEY_DOWN then
+			if event[0].key.key == sdl.SDLK_R then
 				self:resetView()
-			elseif event[0].key.keysym.sym == sdl.SDLK_LSHIFT then
+			elseif event[0].key.key == sdl.SDLK_LSHIFT then
 				self.leftShiftDown = true
-			elseif event[0].key.keysym.sym == sdl.SDLK_RSHIFT then
+			elseif event[0].key.key == sdl.SDLK_RSHIFT then
 				self.rightShiftDown = true
 			end
-		elseif event[0].type == sdl.SDL_KEYUP then
-			if event[0].key.keysym.sym == sdl.SDLK_LSHIFT then
+		elseif event[0].type == sdl.SDL_EVENT_KEY_UP then
+			if event[0].key.key == sdl.SDLK_LSHIFT then
 				self.leftShiftDown = false
-			elseif event[0].key.keysym.sym == sdl.SDLK_RSHIFT then
+			elseif event[0].key.key == sdl.SDLK_RSHIFT then
 				self.rightShiftDown = false
 			end
 		end
