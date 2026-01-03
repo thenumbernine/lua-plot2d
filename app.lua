@@ -165,18 +165,6 @@ function Plot2DApp:event(event)
 		if canHandleMouse then
 			if event[0].button.button == sdl.SDL_BUTTON_LEFT then
 				self.leftButtonDown = true
-			elseif event[0].button.button == sdl.SDL_BUTTON_WHEELUP then
-				local delta = vec2(
-					(event[0].button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-					(.5 - event[0].button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
-				self.viewpos = self.viewpos + delta * (1 - .9)
-				self.viewsize = self.viewsize * .9
-			elseif event[0].button.button == sdl.SDL_BUTTON_WHEELDOWN then
-				local delta = vec2(
-					(event[0].button.x/w - .5) * (self.viewbbox.max[1] - self.viewbbox.min[1]),
-					(.5 - event[0].button.y/h) * (self.viewbbox.max[2] - self.viewbbox.min[2]))
-				self.viewpos = self.viewpos + delta * (1 - 1 / .9)
-				self.viewsize = self.viewsize / .9
 			end
 		end
 	elseif event[0].type == sdl.SDL_EVENT_MOUSE_BUTTON_UP then
@@ -185,6 +173,16 @@ function Plot2DApp:event(event)
 				self.leftButtonDown = false
 			end
 		end
+	elseif event[0].type == SDL_EVENNT_MOUSE_WHEEL then
+		local x = event[0].wheel.x
+		local y = event[0].wheel.y
+		local dx = 10 * event[0].wheel.x
+		local dy = 10 * event[0].wheel.y
+
+		local aspectRatio = self.width / self.height
+		local fdx = -2 * dx / self.width * self.view.orthoSize * aspectRatio
+		local fdy = 2 * dy / self.height * self.view.orthoSize
+		self.viewpos = self.viewpos + vec2(fdx, fdy)
 	end
 	if canHandleKeyboard then
 		if event[0].type == sdl.SDL_EVENT_KEY_DOWN then
@@ -293,7 +291,7 @@ function Plot2DApp:checkbox(...)
 	if self.conciseView then
 		ig.igSameLine()
 		return ig.luatableTooltipCheckbox(...)
-	else 
+	else
 		return ig.luatableCheckbox(...)
 	end
 end
