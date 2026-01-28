@@ -1,11 +1,16 @@
+--------------------------------------------
+-- generated with dist/build-distinfo.rua --
+--------------------------------------------
+
 name = "plot2d"
 files = {
-	["README.md"] = "plot2d/README.md",
-	["app.lua"] = "plot2d/app.lua",
-	["font.png"] = "plot2d/font.png",
-	["plot2d-dev-1.rockspec"] = "plot2d/plot2d-dev-1.rockspec",
-	["plot2d.lua"] = "plot2d/plot2d.lua",
-	["run.lua"] = "plot2d/run.lua",
+	"README.md",
+	"app.lua",
+	"distinfo",
+	"font.png",
+	"plot2d-dev-1.rockspec",
+	"plot2d.lua",
+	"run.lua",
 }
 deps = {
 	"ext",
