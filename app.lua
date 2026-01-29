@@ -32,10 +32,9 @@ function Plot2DApp:init(...)
 end
 
 -- TODO somehow, try to unify the API of this and of gnuplot package
-function Plot2DApp:setGraphInfo(graphs, numRows, fontfile)
+function Plot2DApp:setGraphInfo(graphs, numRows)
 	self.graphs = graphs or {}
 	self.numRows = numRows
-	self.fontfile = fontfile
 
 	for name,graph in pairs(self.graphs) do
 		if not graph.color then
@@ -118,11 +117,6 @@ void main() {
 	}
 
 	self:setGraphInfo(table.unpack(self.initArgs))
-
-	if not self.fontfile or not path(self.fontfile):exists() then
-		-- TODO any better way of inferring the path of this file as it's being require()'d?
-		self.fontfile = os.getenv'LUA_PROJECT_PATH'..'/plot2d/font.png'
-	end
 
 	local names = table()
 	for name,_ in pairs(self.graphs) do

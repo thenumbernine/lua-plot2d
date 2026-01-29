@@ -27,8 +27,8 @@ graphs = {
 --]]
 local Plot2DApp = require 'plot2d.app'
 
-local function plot2d(graphs, numRows, fontfile)
-	local plot2DApp = Plot2DApp(graphs, numRows, fontfile)
+local function plot2d(graphs, numRows)
+	local plot2DApp = Plot2DApp(graphs, numRows)
 	return plot2DApp:run()
 end
 
