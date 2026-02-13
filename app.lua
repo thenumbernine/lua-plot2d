@@ -84,7 +84,7 @@ end
 function Plot2DApp:initGL()
 	Plot2DApp.super.initGL(self)
 
-	self.view = require 'glapp.view'{
+	self.view = require 'app3d.view'{
 		ortho = true,
 	}
 
